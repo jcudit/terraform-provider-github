@@ -42,6 +42,11 @@ func resourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"maintainers": {
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
 		},
 	}
 }
@@ -51,11 +56,13 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	n := d.Get("name").(string)
 	desc := d.Get("description").(string)
 	p := d.Get("privacy").(string)
+	m := expandStringList(d.Get("maintainers").([]interface{}))
 
 	newTeam := &github.NewTeam{
 		Name:        n,
 		Description: &desc,
 		Privacy:     &p,
+		Maintainers: m,
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		id := int64(parentTeamID.(int))
@@ -113,11 +120,13 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
 	privacy := d.Get("privacy").(string)
+	maintainers := expandStringList(d.Get("maintainers").([]interface{}))
 
 	editedTeam := &github.NewTeam{
 		Name:        name,
 		Description: &description,
 		Privacy:     &privacy,
+		Maintainers: maintainers,
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		id := int64(parentTeamID.(int))

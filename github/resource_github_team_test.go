@@ -167,6 +167,7 @@ resource "github_team" "foo" {
 	name = "tf-acc-test-%s"
 	description = "Terraform acc test group"
 	privacy = "secret"
+	maintainers = ["bar"]
 }
 `, randString)
 }
