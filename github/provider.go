@@ -68,6 +68,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
+			"github_codeowners":    dataSourceGithubCodeowners(),
 			"github_collaborators": dataSourceGithubCollaborators(),
 			"github_ip_ranges":     dataSourceGithubIpRanges(),
 			"github_release":       dataSourceGithubRelease(),
@@ -119,7 +120,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			Anonymous:    d.Get("anonymous").(bool),
 		}
 
-		meta, err := config.Client()
+		meta, err := config.Clients()
 		if err != nil {
 			return nil, err
 		}
