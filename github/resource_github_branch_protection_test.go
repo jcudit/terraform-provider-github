@@ -39,8 +39,6 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					testAccCheckGithubBranchProtectionPullRequestReviews(&protection, true, []string{testUser}, []string{}, true),
 					resource.TestCheckResourceAttr(rn, "repository", repoName),
 					resource.TestCheckResourceAttr(rn, "branch", "master"),
-					resource.TestCheckResourceAttr(rn, "enforce_admins", "true"),
-					resource.TestCheckResourceAttr(rn, "require_signed_commits", "true"),
 					resource.TestCheckResourceAttr(rn, "required_status_checks.0.strict", "true"),
 					resource.TestCheckResourceAttr(rn, "required_status_checks.0.contexts.#", "1"),
 					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.0.dismiss_stale_reviews", "true"),
@@ -60,11 +58,49 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					testAccCheckGithubBranchProtectionNoPullRequestReviewsExist(&protection),
 					resource.TestCheckResourceAttr(rn, "repository", repoName),
 					resource.TestCheckResourceAttr(rn, "branch", "master"),
-					resource.TestCheckResourceAttr(rn, "require_signed_commits", "false"),
 					resource.TestCheckResourceAttr(rn, "required_status_checks.0.strict", "false"),
 					resource.TestCheckResourceAttr(rn, "required_status_checks.0.contexts.#", "1"),
 					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.#", "0"),
 					resource.TestCheckResourceAttr(rn, "restrictions.#", "0"),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccGithubBranchProtection_optionalAttributes(t *testing.T) {
+	rn := "github_branch_protection.master"
+	rString := acctest.RandString(5)
+	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGithubBranchProtectionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubBranchProtectionOptionalAttributes(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "enforce_admins", "false"),
+					resource.TestCheckResourceAttr(rn, "allow_force_pushes", "false"),
+					resource.TestCheckResourceAttr(rn, "allow_deletions", "false"),
+					resource.TestCheckResourceAttr(rn, "require_linear_history", "false"),
+					resource.TestCheckResourceAttr(rn, "require_signed_commits", "false"),
+				),
+			},
+			{
+				Config: testAccGithubBranchProtectionOptionalAttributesUpdate(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "enforce_admins", "true"),
+					resource.TestCheckResourceAttr(rn, "allow_force_pushes", "true"),
+					resource.TestCheckResourceAttr(rn, "allow_deletions", "true"),
+					resource.TestCheckResourceAttr(rn, "require_linear_history", "true"),
+					resource.TestCheckResourceAttr(rn, "require_signed_commits", "true"),
 				),
 			},
 			{
@@ -447,10 +483,8 @@ resource "github_repository" "test" {
 }
 
 resource "github_branch_protection" "master" {
-  repository     = "${github_repository.test.name}"
-  branch         = "master"
-  enforce_admins = true
-  require_signed_commits = true
+  repository             = "${github_repository.test.name}"
+  branch                 = "master"
 
   required_status_checks {
     strict   = true
@@ -486,6 +520,42 @@ resource "github_branch_protection" "master" {
     strict   = false
     contexts = ["github/bar"]
   }
+}
+`, repoName, repoName)
+}
+
+func testAccGithubBranchProtectionOptionalAttributes(repoName string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "%s"
+  description = "Terraform Acceptance Test %s"
+  auto_init   = true
+}
+
+resource "github_branch_protection" "master" {
+  repository = "${github_repository.test.name}"
+  branch     = "master"
+}
+`, repoName, repoName)
+}
+
+func testAccGithubBranchProtectionOptionalAttributesUpdate(repoName string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "%s"
+  description = "Terraform Acceptance Test %s"
+  auto_init   = true
+}
+
+resource "github_branch_protection" "master" {
+  repository = "${github_repository.test.name}"
+  branch     = "master"
+
+  enforce_admins         = true
+  allow_force_pushes     = true
+  allow_deletions        = true
+  require_linear_history = true
+  require_signed_commits = true
 }
 `, repoName, repoName)
 }
